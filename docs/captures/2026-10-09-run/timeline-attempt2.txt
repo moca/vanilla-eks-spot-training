@@ -1,0 +1,18 @@
+phase                            dur $ at $30/hr
+node boot (launch->ready)         --          --   (needs Prometheus (-m))
+image pull                       143s        1.19
+s3 restore (sync_down)             7s        0.06
+train launch (torchrun)            0s        0.00
+torch.compile -> first step       55s        0.46
+training                         217s        1.81
+ckpt saved->durable (x4)          22s        0.18   (inside training; saved->durable)
+drain final sync                  --          --   (needs PHASE sigterm/drain_done)
+
+GPU-idle: 3m25s of 7m02s (48%)  ~ $1.71 burned not training
+  A FLOOR, not the total: this counts only time outside the training
+  window. Stalls inside it -- checkpoint uploads, dataloader starvation --
+  are invisible to the PHASE lines. The DCGM line below does see them.
+
+missing: node boot      -- no Prometheus (-m)
+missing: power idle     -- no DCGM query (-m); the GPU-idle line above is
+                           derived from the PHASE lines instead.

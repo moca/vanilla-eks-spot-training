@@ -1,0 +1,23 @@
+PHASE {"ts":"2026-10-09T09:29:08Z","phase":"pod_start","stage":"train"}
+[train 09:29:09] preflight: checking write access to s3://<ARTIFACTS_BUCKET>/runs/<DEMO_RUN_ID>
+[train 09:29:09] pulling state from s3://<ARTIFACTS_BUCKET>/runs/<DEMO_RUN_ID>
+PHASE {"ts":"2026-10-09T09:29:15Z","phase":"restore_done","stage":"train"}
+[train 09:29:15] RESUMING from step 150
+PHASE {"ts":"2026-10-09T09:29:15Z","phase":"train_launch","stage":"train","step":150}
+Resuming optimization from step 150
+PHASE {"ts":"2026-10-09T09:29:48Z","phase":"ckpt_uploaded","stage":"train","step":150}
+step 00150/00400 (37.50%) | loss: 5.222193
+PHASE {"ts":"2026-10-09T09:30:10Z","phase":"first_step","stage":"train","step":150}
+PHASE {"ts":"2026-10-09T09:30:52Z","phase":"ckpt_saved","stage":"train","step":225}
+PHASE {"ts":"2026-10-09T09:30:59Z","phase":"ckpt_uploaded","stage":"train","step":225}
+PHASE {"ts":"2026-10-09T09:31:34Z","phase":"ckpt_saved","stage":"train","step":250}
+PHASE {"ts":"2026-10-09T09:31:35Z","phase":"ckpt_uploaded","stage":"train","step":250}
+PHASE {"ts":"2026-10-09T09:32:17Z","phase":"ckpt_saved","stage":"train","step":325}
+PHASE {"ts":"2026-10-09T09:32:17Z","phase":"ckpt_uploaded","stage":"train","step":325}
+PHASE {"ts":"2026-10-09T09:32:45Z","phase":"ckpt_saved","stage":"train","step":375}
+PHASE {"ts":"2026-10-09T09:32:59Z","phase":"ckpt_uploaded","stage":"train","step":375}
+step 00399/00400 (99.75%) | loss: 4.159116
+[checkpoint] saved model, metadata, and optimizer ranks 0..7 for step 400
+PHASE {"ts":"2026-10-09T09:33:38Z","phase":"ckpt_saved","stage":"train","step":400}
+[train 09:33:47] COMPLETE at step 400
+PHASE {"ts":"2026-10-09T09:33:47Z","phase":"complete","stage":"train","step":400}

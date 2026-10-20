@@ -1,0 +1,11 @@
+{"time":"2026-10-09T09:20:33.976Z","message":"created nodeclaim","NodePool":{"name":"<GPU_NODEPOOL>"},"NodeClaim":{"name":"<NODECLAIM_1>"},"requests":{"nvidia.com/gpu":"8"},"instance-types":"<GPU_INSTANCE_TYPE>"}
+{"time":"2026-10-09T09:20:36.537Z","message":"launched nodeclaim","NodeClaim":{"name":"<NODECLAIM_1>"},"provider-id":"aws:///<AVAILABILITY_ZONE>/<INSTANCE_ID_1>","instance-type":"<GPU_INSTANCE_TYPE>","capacity-type":"reserved"}
+{"time":"2026-10-09T09:21:35.442Z","message":"registered nodeclaim","NodeClaim":{"name":"<NODECLAIM_1>"},"Node":{"name":"<GPU_NODE_1>"}}
+{"time":"2026-10-09T09:21:47.270Z","message":"initialized nodeclaim","NodeClaim":{"name":"<NODECLAIM_1>"},"Node":{"name":"<GPU_NODE_1>"}}
+{"time":"2026-10-09T09:25:55.764Z","message":"initiating delete from interruption message","queue":"<INTERRUPTION_QUEUE>","messageKind":"spot_interrupted","NodeClaim":{"name":"<NODECLAIM_1>"},"action":"CordonAndDrain","Node":{"name":"<GPU_NODE_1>"}}
+{"time":"2026-10-09T09:25:55.785Z","message":"annotated nodeclaim","NodeClaim":{"name":"<NODECLAIM_1>"},"Node":{"name":"<GPU_NODE_1>"},"karpenter.sh/nodeclaim-termination-timestamp":"2026-10-09T09:30:55Z"}
+{"time":"2026-10-09T09:25:55.837Z","message":"tainted node","Node":{"name":"<GPU_NODE_1>"},"NodeClaim":{"name":"<NODECLAIM_1>"},"taint.Key":"karpenter.sh/disrupted","taint.Effect":"NoSchedule"}
+{"time":"2026-10-09T09:26:47.041Z","message":"created nodeclaim","NodePool":{"name":"<GPU_NODEPOOL>"},"NodeClaim":{"name":"<NODECLAIM_2>"},"requests":{"nvidia.com/gpu":"8"},"instance-types":"<GPU_INSTANCE_TYPE>"}
+{"time":"2026-10-09T09:26:49.481Z","message":"launched nodeclaim","NodeClaim":{"name":"<NODECLAIM_2>"},"provider-id":"aws:///<AVAILABILITY_ZONE>/<INSTANCE_ID_2>","instance-type":"<GPU_INSTANCE_TYPE>","capacity-type":"reserved"}
+{"time":"2026-10-09T09:27:47.606Z","message":"registered nodeclaim","NodeClaim":{"name":"<NODECLAIM_2>"},"Node":{"name":"<GPU_NODE_2>"}}
+{"time":"2026-10-09T09:27:58.493Z","message":"initialized nodeclaim","NodeClaim":{"name":"<NODECLAIM_2>"},"Node":{"name":"<GPU_NODE_2>"}}

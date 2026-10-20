@@ -1,0 +1,58 @@
+# Fixture: one training attempt interrupted by a node drain -- the case this repo
+# exists to show, and the only case where sigterm/drain_done exist at all. Shape is
+# a real pod stdout: PHASE lines interleaved with ordinary log lines, second
+# resolution ts per the contract, plus a tokenizer-stage triple so the renderer's
+# stage filter is under test.
+#
+# `first_step` and `ckpt_saved` are in the contract but the landed entrypoint does
+# NOT emit them -- both happen inside torchrun, which bash only wraps. They are
+# here because the contract is the interface, and `timeline.sh --check` renders
+# this same file with those two stripped to prove the degraded path.
+PHASE {"ts":"2026-09-30T15:30:14Z","phase":"pod_start","stage":"tokenizer"}
+PHASE {"ts":"2026-09-30T15:30:34Z","phase":"restore_done","stage":"tokenizer"}
+[tokenizer 15:30:35] tokenizer already complete, skipping
+PHASE {"ts":"2026-09-30T15:30:36Z","phase":"complete","stage":"tokenizer"}
+PHASE {"ts":"2026-09-30T15:46:16Z","phase":"pod_start","stage":"train"}
+[train 15:46:16] preflight: checking write access to s3://nanochat-demo/runs/d12-20260930-154251
+[train 15:46:17] pulling state from s3://nanochat-demo/runs/d12-20260930-154251
+PHASE {"ts":"2026-09-30T15:46:24Z","phase":"restore_done","stage":"train"}
+[train 15:46:27] starting fresh
+PHASE {"ts":"2026-09-30T15:46:27Z","phase":"train_launch","stage":"train"}
+[train 15:46:31] torchrun --standalone --nproc_per_node=8 -m scripts.base_train
+[train 15:46:57] compiling the model with torch.compile (this takes a while)
+PHASE {"ts":"2026-09-30T15:48:48Z","phase":"first_step","stage":"train","step":0}
+PHASE {"ts":"2026-09-30T15:49:52Z","phase":"ckpt_saved","stage":"train","step":25}
+PHASE {"ts":"2026-09-30T15:50:04Z","phase":"ckpt_uploaded","stage":"train","step":25}
+PHASE {"ts":"2026-09-30T15:50:55Z","phase":"ckpt_saved","stage":"train","step":50}
+PHASE {"ts":"2026-09-30T15:51:07Z","phase":"ckpt_uploaded","stage":"train","step":50}
+PHASE {"ts":"2026-09-30T15:51:59Z","phase":"ckpt_saved","stage":"train","step":75}
+PHASE {"ts":"2026-09-30T15:52:11Z","phase":"ckpt_uploaded","stage":"train","step":75}
+PHASE {"ts":"2026-09-30T15:53:03Z","phase":"ckpt_saved","stage":"train","step":100}
+PHASE {"ts":"2026-09-30T15:53:15Z","phase":"ckpt_uploaded","stage":"train","step":100}
+PHASE {"ts":"2026-09-30T15:54:07Z","phase":"ckpt_saved","stage":"train","step":125}
+PHASE {"ts":"2026-09-30T15:54:19Z","phase":"ckpt_uploaded","stage":"train","step":125}
+PHASE {"ts":"2026-09-30T15:55:10Z","phase":"ckpt_saved","stage":"train","step":150}
+PHASE {"ts":"2026-09-30T15:55:22Z","phase":"ckpt_uploaded","stage":"train","step":150}
+PHASE {"ts":"2026-09-30T15:56:14Z","phase":"ckpt_saved","stage":"train","step":175}
+PHASE {"ts":"2026-09-30T15:56:26Z","phase":"ckpt_uploaded","stage":"train","step":175}
+PHASE {"ts":"2026-09-30T15:57:18Z","phase":"ckpt_saved","stage":"train","step":200}
+PHASE {"ts":"2026-09-30T15:57:30Z","phase":"ckpt_uploaded","stage":"train","step":200}
+PHASE {"ts":"2026-09-30T15:58:22Z","phase":"ckpt_saved","stage":"train","step":225}
+PHASE {"ts":"2026-09-30T15:58:34Z","phase":"ckpt_uploaded","stage":"train","step":225}
+PHASE {"ts":"2026-09-30T15:59:26Z","phase":"ckpt_saved","stage":"train","step":250}
+PHASE {"ts":"2026-09-30T15:59:38Z","phase":"ckpt_uploaded","stage":"train","step":250}
+PHASE {"ts":"2026-09-30T16:00:29Z","phase":"ckpt_saved","stage":"train","step":275}
+PHASE {"ts":"2026-09-30T16:00:41Z","phase":"ckpt_uploaded","stage":"train","step":275}
+PHASE {"ts":"2026-09-30T16:01:33Z","phase":"ckpt_saved","stage":"train","step":300}
+PHASE {"ts":"2026-09-30T16:01:45Z","phase":"ckpt_uploaded","stage":"train","step":300}
+PHASE {"ts":"2026-09-30T16:02:37Z","phase":"ckpt_saved","stage":"train","step":325}
+PHASE {"ts":"2026-09-30T16:02:49Z","phase":"ckpt_uploaded","stage":"train","step":325}
+PHASE {"ts":"2026-09-30T16:03:40Z","phase":"ckpt_saved","stage":"train","step":350}
+PHASE {"ts":"2026-09-30T16:03:52Z","phase":"ckpt_uploaded","stage":"train","step":350}
+PHASE {"ts":"2026-09-30T16:04:44Z","phase":"ckpt_saved","stage":"train","step":375}
+PHASE {"ts":"2026-09-30T16:04:56Z","phase":"ckpt_uploaded","stage":"train","step":375}
+[train 16:05:14] SIGTERM -- draining
+PHASE {"ts":"2026-09-30T16:05:14Z","phase":"sigterm","stage":"train"}
+[train 16:05:15] final checkpoint sync
+[train 16:05:35] drained at step 375; exiting 1 so the stage retries
+PHASE {"ts":"2026-09-30T16:05:36Z","phase":"drain_done","stage":"train","step":375}

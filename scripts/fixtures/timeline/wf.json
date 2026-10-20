@@ -1,0 +1,50 @@
+{
+  "apiVersion": "argoproj.io/v1alpha1",
+  "kind": "Workflow",
+  "metadata": {
+    "name": "nanochat-base-train-h7k2x",
+    "namespace": "default"
+  },
+  "status": {
+    "phase": "Running",
+    "startedAt": "2026-09-30T15:21:54Z",
+    "nodes": {
+      "nanochat-base-train-h7k2x-2211887311": {
+        "id": "nanochat-base-train-h7k2x-2211887311",
+        "displayName": "tokenizer(0)",
+        "type": "Pod",
+        "templateName": "stage",
+        "phase": "Succeeded",
+        "startedAt": "2026-09-30T15:30:09Z",
+        "finishedAt": "2026-09-30T15:30:44Z"
+      },
+      "nanochat-base-train-h7k2x-3094118822": {
+        "id": "nanochat-base-train-h7k2x-3094118822",
+        "displayName": "train(0)",
+        "type": "Pod",
+        "templateName": "train-stage",
+        "phase": "Failed",
+        "message": "pod deleted during operation",
+        "startedAt": "2026-09-30T15:45:14Z",
+        "finishedAt": "2026-09-30T16:05:40Z"
+      },
+      "nanochat-base-train-h7k2x-4177440933": {
+        "id": "nanochat-base-train-h7k2x-4177440933",
+        "displayName": "train(1)",
+        "type": "Pod",
+        "templateName": "train-stage",
+        "phase": "Running",
+        "startedAt": "2026-09-30T16:06:10Z",
+        "finishedAt": null
+      },
+      "nanochat-base-train-h7k2x": {
+        "id": "nanochat-base-train-h7k2x",
+        "displayName": "nanochat-base-train-h7k2x",
+        "type": "DAG",
+        "phase": "Running",
+        "startedAt": "2026-09-30T15:21:54Z",
+        "finishedAt": null
+      }
+    }
+  }
+}

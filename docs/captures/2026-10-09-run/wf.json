@@ -1,0 +1,14 @@
+{
+  "apiVersion": "argoproj.io/v1alpha1",
+  "kind": "Workflow",
+  "metadata": {"name": "<WORKFLOW_NAME>", "uid": "<WORKFLOW_UID>"},
+  "status": {
+    "phase": "Succeeded",
+    "finishedAt": "2026-10-09T09:33:58Z",
+    "nodes": {
+      "<TRAIN_TASK_ID>": {"displayName": "train", "type": "Retry", "phase": "Succeeded", "children": ["<TRAIN_POD_ID_1>", "<TRAIN_POD_ID_2>"]},
+      "<TRAIN_POD_ID_1>": {"id": "<TRAIN_POD_ID_1>", "displayName": "train(0)", "type": "Pod", "phase": "Failed", "startedAt": "2026-10-09T09:20:32Z", "finishedAt": "2026-10-09T09:26:05Z", "hostNodeName": "<GPU_NODE_1>", "message": "main: Error (exit code 1)"},
+      "<TRAIN_POD_ID_2>": {"id": "<TRAIN_POD_ID_2>", "displayName": "train(1)", "type": "Pod", "phase": "Succeeded", "startedAt": "2026-10-09T09:26:45Z", "finishedAt": "2026-10-09T09:33:48Z", "hostNodeName": "<GPU_NODE_2>"}
+    }
+  }
+}

@@ -1,0 +1,221 @@
+# The base_train DAG: dataset -> tokenizer -> train. Scope is the path to
+# base_train only -- the one stage with upstream --resume-from-step support and
+# the one worth interrupting.
+#
+# retryStrategy is what turns a drain into a resume: Argo creates a FRESH pod on
+# the Karpenter replacement node, and the entrypoint finds the last S3 checkpoint.
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: nanochat-base-train-
+  namespace: default
+spec:
+  serviceAccountName: argo-workflow
+  entrypoint: pipeline
+
+  # Keep failed pods inspectable during the demo.
+  podGC:
+    strategy: OnWorkflowSuccess
+
+  arguments:
+    parameters:
+      - name: image
+        value: "__IMAGE__"
+      - name: s3-uri
+        value: "__S3_URI__"
+      # THE RUN-LENGTH LEVER. Measured 537 ms/step on 8x L40S, so 400 steps is
+      # ~3m35s of training inside a ~9 min pod. 400 x 65536 = 26.2M tokens.
+      # Raising it is safe; changing it BETWEEN a kill and its retry is not --
+      # the LR/momentum/decay schedules are functions of num_iterations and are
+      # not in the checkpoint, so a resume would train a different model.
+      - name: depth
+        value: "12"
+      - name: num-iterations
+        value: "400"
+      # One save interval is the worst-case loss.
+      - name: save-every
+        value: "25"
+      - name: wandb-run
+        value: "__WANDB_RUN__"
+      - name: wandb-secret-id
+        value: "__WANDB_SECRET_ID__"
+
+  templates:
+    - name: pipeline
+      dag:
+        tasks:
+          - name: dataset
+            template: stage
+            arguments:
+              parameters: [{ name: stage, value: dataset }]
+          - name: tokenizer
+            template: stage
+            dependencies: [dataset]
+            arguments:
+              parameters: [{ name: stage, value: tokenizer }]
+          - name: train
+            template: train-stage
+            dependencies: [tokenizer]
+
+    # CPU-only prep: no GPU request, so these never occupy a $21/hr GPU node.
+    - name: stage
+      inputs:
+        parameters:
+          - name: stage
+      retryStrategy:
+        limit: "5"
+        # Always, not OnError: Argo classifies drain-deleted pods as either.
+        retryPolicy: Always
+        # ...except a config error. See the note on train-stage.
+        expression: "lastRetry.exitCode != '64'"
+        backoff:
+          duration: "20s"
+          factor: "2"
+          # No maxDuration: Argo measures it from the FIRST attempt's start, so
+          # it caps the whole window and would disable the retries on show.
+      # Cheap syntax canary for the train-stage block: these run on CPU ~2 min in,
+      # so a bad metric expression fails the DAG before any GPU node launches.
+      metrics:
+        prometheus:
+          - name: nanochat_attempt_duration_seconds
+            # Anchored, because Prometheus allows one help string per metric name
+            # and Argo rejects the second registration outright. Two literals
+            # drifted on 2026-10-01 and this stage's metric silently vanished.
+            help: &attempt_help "Wall-clock of one train attempt, including the drained one"
+            labels:
+              - { key: workflow, value: "{{workflow.name}}" }
+              - { key: stage, value: "{{inputs.parameters.stage}}" }
+              - { key: status, value: "{{status}}" }
+            gauge:
+              # false = emit once at node completion. true streams a live duration
+              # that Argo DROPS when the workflow ends.
+              realtime: false
+              value: "{{duration}}"
+      container:
+        image: "{{workflow.parameters.image}}"
+        # Explicit: the emissary executor's ENTRYPOINT lookup fails on private
+        # ECR without pull creds.
+        command: ["/usr/local/bin/entrypoint.sh"]
+        args: ["{{inputs.parameters.stage}}"]
+        # Always: a stale cached layer on a GPU node costs more to diagnose than
+        # the pull costs to repeat.
+        imagePullPolicy: Always
+        env:
+          - name: S3_URI
+            value: "{{workflow.parameters.s3-uri}}"
+          - name: NANOCHAT_BASE_DIR
+            value: /data/nanochat
+          # The other canary. These stages never call wandb, but the run name
+          # makes them FETCH the key, so an unpopulated secret fails here on CPU
+          # rather than after Karpenter launched the g6e. Cost a run 2026-10-01.
+          - name: WANDB_RUN
+            value: "{{workflow.parameters.wandb-run}}"
+          - name: WANDB_SECRET_ID
+            value: "{{workflow.parameters.wandb-secret-id}}"
+        resources:
+          # 2, not 3: m7i.xlarge allocates 3920m and ~1400m is already taken, so
+          # 3000m fits NEITHER system node and the stage sits Pending forever --
+          # and the tainted GPU NodePool correctly will not rescue it.
+          requests: { cpu: "2", memory: "8Gi" }
+          limits: { memory: "12Gi" }
+        volumeMounts:
+          - name: scratch
+            mountPath: /data
+      volumes:
+        - name: scratch
+          emptyDir: {}
+
+    - name: train-stage
+      retryStrategy:
+        limit: "10"
+        retryPolicy: Always
+        # Retry a drain, not a typo. Exit 64 (EX_USAGE) is "the config cannot
+        # work" and is identical on every attempt, so without this a missing
+        # secret costs ten GPU nodes and ~8h of backoff. A drained pod has no
+        # exit code at all, so it still matches and retries.
+        expression: "lastRetry.exitCode != '64'"
+        backoff:
+          duration: "30s"
+          factor: "2"
+          # No maxDuration -- see the stage template. It would scale with
+          # num-iterations, and a late interruption past it creates no retry pod.
+      # The durable home for end-to-end duration and retry count: Argo's own view
+      # dies with the Workflow object, which nothing here archives (that needs
+      # Postgres). Scraped into AMP, these outlive `make down-cluster`.
+      #
+      # MEASURED 2026-10-01: on a template with a retryStrategy these fire ONCE,
+      # at the Retry node -- `status` is the FINAL status and the duration covers
+      # every attempt including backoff. Per-attempt timings live in the archived
+      # PHASE lines instead. Query as argo_workflows_nanochat_*; the bare name
+      # returns nothing. The workflow label is unbounded (~3 series per run).
+      metrics:
+        prometheus:
+          - name: nanochat_attempt_duration_seconds
+            help: *attempt_help
+            labels:
+              - { key: workflow, value: "{{workflow.name}}" }
+              - { key: stage, value: "train" }
+              - { key: status, value: "{{status}}" }
+            gauge:
+              realtime: false
+              value: "{{duration}}"
+          - name: nanochat_attempt_retries
+            help: "Retry index of this attempt; max over a run = retries consumed"
+            labels:
+              - { key: workflow, value: "{{workflow.name}}" }
+            gauge:
+              realtime: false
+              value: "{{retries}}"
+      # Under the 120s Spot window, and under the NodePool's 5m node-level
+      # terminationGracePeriod so it is never clipped.
+      podSpecPatch: |
+        terminationGracePeriodSeconds: 110
+      tolerations:
+        - key: nvidia.com/gpu
+          effect: NoSchedule
+      container:
+        image: "{{workflow.parameters.image}}"
+        command: ["/usr/local/bin/entrypoint.sh"]
+        args: ["train"]
+        imagePullPolicy: Always
+        env:
+          - name: S3_URI
+            value: "{{workflow.parameters.s3-uri}}"
+          - name: NANOCHAT_BASE_DIR
+            value: /data/nanochat
+          - name: NPROC
+            value: "8"
+          - name: DEPTH
+            value: "{{workflow.parameters.depth}}"
+          - name: NUM_ITERATIONS
+            value: "{{workflow.parameters.num-iterations}}"
+          - name: SAVE_EVERY
+            value: "{{workflow.parameters.save-every}}"
+          - name: DEVICE_BATCH_SIZE
+            value: "8"
+          - name: WANDB_RUN
+            value: "{{workflow.parameters.wandb-run}}"
+          - name: WANDB_SECRET_ID
+            value: "{{workflow.parameters.wandb-secret-id}}"
+          # No WANDB_API_KEY: the entrypoint reads it from Secrets Manager via
+          # Pod Identity, so it never lands in etcd and never goes stale.
+        resources:
+          # All 8 in one pod: the shape torchrun --nproc_per_node=8 needs.
+          limits:
+            nvidia.com/gpu: 8
+          requests:
+            cpu: "24"
+            memory: "128Gi"
+        volumeMounts:
+          - name: scratch
+            mountPath: /data
+          # torch DataLoader workers need more than the default 64MB /dev/shm.
+          - name: dshm
+            mountPath: /dev/shm
+      volumes:
+        - name: scratch
+          emptyDir: {}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
